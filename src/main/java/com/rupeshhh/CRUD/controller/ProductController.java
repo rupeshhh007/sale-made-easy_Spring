@@ -3,6 +3,7 @@ package com.rupeshhh.CRUD.controller;
 import com.rupeshhh.CRUD.models.Product;
 import com.rupeshhh.CRUD.models.ProductDTO;
 import com.rupeshhh.CRUD.repository.ProductRepository;
+import java.nio.file.Path;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -14,7 +15,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -41,18 +49,50 @@ public class ProductController {
 
     @PostMapping("/create")
     public String createproduct(
-            @Valid @ModelAttribute ProductDTO productDTO,
+            @Valid @ModelAttribute("productDTO") ProductDTO productDTO,
             BindingResult result
-    ){
-        if(productDTO.getImageFile().isEmpty()){
-            result.addError(new FieldError("productDTO","imageFile","The image file is empty! "));
+    ) {
+        if (productDTO.getImageFile().isEmpty()) {
+            result.addError(new FieldError("productDTO", "imageFile", "The image file is empty."));
         }
 
-        if(result.hasErrors()){
+        if (result.hasErrors()) {
             return "products/CreateProduct";
         }
+
+        // Save uploaded image to static/images/
+        MultipartFile image = productDTO.getImageFile();
+        Date createdAt = new Date();
+        String storageFileName = createdAt.getTime() + "_" + image.getOriginalFilename();
+
+        try {
+            // Adjust path for Spring Boot static content
+            String uploadDir = new File("src/main/resources/static/images").getAbsolutePath();
+            Path uploadPath = Paths.get(uploadDir);
+
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            try (InputStream inputStream = image.getInputStream()) {
+                Files.copy(
+                        inputStream,
+                        uploadPath.resolve(storageFileName),
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            }
+
+            // OPTIONAL: Set file name in entity if saving to DB
+            // product.setImageFileName(storageFileName);
+
+        } catch (Exception ex) {
+            System.out.println("Exception: " + ex.getMessage());
+        }
+
+
         return "redirect:/products";
     }
+
 }
 
 
