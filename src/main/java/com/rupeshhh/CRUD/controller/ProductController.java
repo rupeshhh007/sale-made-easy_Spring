@@ -88,6 +88,16 @@ public class ProductController {
         } catch (Exception ex) {
             System.out.println("Exception: " + ex.getMessage());
         }
+        Product product = new Product();
+        product.setName(productDTO.getName());
+        product.setBrand(productDTO.getBrand());
+        product.setCategory(productDTO.getCategory());
+        product.setPrice(productDTO.getPrice());
+        product.setDescription(productDTO.getDescription());
+        product.setCreatedAt(createdAt);
+        product.setImageFileName(storageFileName);
+
+        repo.save(product);
 
 
         return "redirect:/products";
