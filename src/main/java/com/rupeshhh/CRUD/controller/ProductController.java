@@ -106,16 +106,19 @@ public class ProductController {
             Model model,
             @RequestParam int id
     ) {
-
         try {
             Product product = repo.findById(id).get();
             model.addAttribute("product", product);
+
+            // Map Product to ProductDTO
             ProductDTO productDTO = new ProductDTO();
-            product.setName(product.getName());
-            product.setBrand(product.getBrand());
-            product.setCategory(product.getCategory());
-            product.setPrice(product.getPrice());
-            product.setDescription(product.getDescription());
+            productDTO.setName(product.getName());
+            productDTO.setBrand(product.getBrand());
+            productDTO.setCategory(product.getCategory());
+            productDTO.setPrice(product.getPrice());
+            productDTO.setDescription(product.getDescription());
+            //productDTO.setImageFileName(product.getImageFileName());
+            //productDTO.setCreatedAt(product.getCreatedAt());
 
             model.addAttribute("productDTO", productDTO);
         } catch (Exception ex) {
@@ -124,6 +127,7 @@ public class ProductController {
         }
         return "products/EditProduct";
     }
+
 
     @PostMapping("/edit")
     public String updateProduct(
@@ -172,6 +176,14 @@ public class ProductController {
                 }
             }
 
+            product.setName(productDTO.getName());
+            product.setBrand(productDTO.getBrand());
+            product.setCategory(productDTO.getCategory());
+            product.setPrice(productDTO.getPrice());
+            product.setDescription(productDTO.getDescription());
+
+            repo.save(product);
+
 
         } catch (Exception ex) {
             System.out.println("Exception: " + ex.getMessage());
@@ -179,6 +191,29 @@ public class ProductController {
 
         return "redirect:/products";
 
+    }
+
+    @GetMapping("/delete")
+    public String deleteProduct(
+            @RequestParam int id
+    ){
+        try{
+            Product product = repo.findById(id).get();
+
+            Path imagePath = Paths.get("static/images"+product.getImageFileName());
+
+            try{
+                Files.delete(imagePath);
+            }
+            catch (Exception ex){
+                System.out.println("Excpetion: " + ex.getMessage());
+            }
+            repo.delete(product);
+        }
+        catch (Exception ex){
+            System.out.println("Excpetion: " + ex.getMessage());
+        }
+        return "redirect:/products";
     }
 }
 
