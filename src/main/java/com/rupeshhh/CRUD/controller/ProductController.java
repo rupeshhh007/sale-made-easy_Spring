@@ -27,17 +27,18 @@ import java.util.List;
 public class ProductController {
     @Autowired
     private ProductRepository repo;
+
     @GetMapping({"", "/"})
-    public String showProductList(Model model){
-        List<Product> products = repo.findAll(Sort.by(Sort.Direction.DESC,"id"));
-        model.addAttribute("products",products);
+    public String showProductList(Model model) {
+        List<Product> products = repo.findAll(Sort.by(Sort.Direction.DESC, "id"));
+        model.addAttribute("products", products);
         return "products/index";
 
 
     }
 
     @GetMapping("/create")
-    public String showCreatePage(Model model){
+    public String showCreatePage(Model model) {
         ProductDTO productDTO = new ProductDTO();
         model.addAttribute("productDTO", productDTO);
         return "products/CreateProduct";
@@ -104,11 +105,11 @@ public class ProductController {
     public String showEditPage(
             Model model,
             @RequestParam int id
-    ){
+    ) {
 
-        try{
+        try {
             Product product = repo.findById(id).get();
-            model.addAttribute("product",product);
+            model.addAttribute("product", product);
             ProductDTO productDTO = new ProductDTO();
             product.setName(product.getName());
             product.setBrand(product.getBrand());
@@ -116,16 +117,69 @@ public class ProductController {
             product.setPrice(product.getPrice());
             product.setDescription(product.getDescription());
 
-            model.addAttribute("productDTO",productDTO);
-        }
-
-        catch (Exception ex){
-            System.out.println("Exception: "+ex.getMessage());
+            model.addAttribute("productDTO", productDTO);
+        } catch (Exception ex) {
+            System.out.println("Exception: " + ex.getMessage());
             return "redirect:/products";
         }
         return "products/EditProduct";
     }
 
+    @PostMapping("/edit")
+    public String updateProduct(
+            Model model,
+            @RequestParam int id,
+            @Valid @ModelAttribute ProductDTO productDTO,
+            BindingResult result
+
+    ) {
+        try {
+            Product product = repo.findById(id).get();
+            model.addAttribute("product",product);
+
+            if(result.hasErrors()){
+                return "products/EditProduct";
+            }
+            if (!productDTO.getImageFile().isEmpty()) {
+                try {
+
+                    String uploadDir = new File("src/main/resources/static/images").getAbsolutePath();
+
+                    // Delete old image if it exists
+                    String oldImageFileName = product.getImageFileName();
+                    if (oldImageFileName != null && !oldImageFileName.isEmpty()) {
+                        Path oldImagePath = Paths.get(uploadDir, oldImageFileName);
+                        if (Files.exists(oldImagePath)) {
+                            Files.delete(oldImagePath);
+                        }
+                    }
+
+                    MultipartFile image = productDTO.getImageFile();
+                    String storageFileName = new Date().getTime() + "_" + image.getOriginalFilename();
+                    try (InputStream inputStream = image.getInputStream()) {
+                        Files.copy(
+                                inputStream,
+                                Paths.get(uploadDir, storageFileName),
+                                StandardCopyOption.REPLACE_EXISTING
+                        );
+                    }
+
+                    // Set new image filename in product (if you're saving to DB)
+                    product.setImageFileName(storageFileName);
+
+                } catch (Exception ex) {
+                    System.out.println("Image handling error: " + ex.getMessage());
+                }
+            }
+
+
+        } catch (Exception ex) {
+            System.out.println("Exception: " + ex.getMessage());
+        }
+
+        return "redirect:/products";
+
+    }
 }
 
 
